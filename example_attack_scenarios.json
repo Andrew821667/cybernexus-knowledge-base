@@ -1,0 +1,95 @@
+{
+  "database_info": {
+    "title": "База знаний КиберНексус",
+    "version": "1.1",
+    "last_updated": "2025-03-15",
+    "description": "База знаний по AI-решениям для кибербезопасности компании КиберНексус с модулем сценариев атак"
+  },
+  "sections": [
+    {
+      "id": "attack_scenarios",
+      "name": "Сценарии атак",
+      "description": "Типовые сценарии кибератак с детальным описанием этапов, техник и мер защиты",
+      "subsections": [
+        {
+          "id": "ransomware_attacks",
+          "name": "Атаки программ-вымогателей",
+          "description": "Сценарии атак с использованием программ-вымогателей",
+          "content": {
+            "scenarios": [
+              {
+                "id": "enterprise_ransomware_attack",
+                "name": "Целевая атака программы-вымогателя на предприятие",
+                "description": "Сценарий целенаправленной атаки программы-вымогателя на крупное предприятие с проникновением через фишинг, латеральным перемещением и шифрованием критических данных",
+                "difficulty_level": "High",
+                "impact_level": "Critical",
+                "typical_duration": "2-4 недели",
+                "detection_complexity": "Medium",
+                "mitigation_complexity": "High",
+                "tags": ["ransomware", "phishing", "lateral movement", "data encryption"],
+                "mitre_attack_ids": ["TA0001", "TA0002", "TA0004", "TA0005", "TA0040"],
+                "threat_actors": ["APT группы", "Киберпреступные группировки"],
+                "stages": [
+                  {
+                    "stage_id": "initial_access",
+                    "name": "Первоначальный доступ",
+                    "description": "Получение первоначального доступа через фишинговое письмо с вредоносным вложением",
+                    "order_index": 1,
+                    "techniques": [
+                      {
+                        "name": "Фишинг",
+                        "description": "Отправка целевых фишинговых писем сотрудникам с вредоносными макросами в документах Office",
+                        "mitre_technique_id": "T1566.001"
+                      }
+                    ]
+                  },
+                  {
+                    "stage_id": "persistence",
+                    "name": "Закрепление",
+                    "description": "Установка бэкдора для обеспечения постоянного доступа",
+                    "order_index": 2,
+                    "techniques": [
+                      {
+                        "name": "Планировщик задач",
+                        "description": "Создание задачи в планировщике для запуска вредоносного кода при загрузке системы",
+                        "mitre_technique_id": "T1053.005"
+                      }
+                    ]
+                  }
+                ],
+                "target_assets": [
+                  {
+                    "asset_type": "Файловые серверы",
+                    "asset_description": "Серверы с критическими бизнес-данными, документами и интеллектуальной собственностью"
+                  },
+                  {
+                    "asset_type": "Базы данных",
+                    "asset_description": "Серверы баз данных с информацией о клиентах, финансовыми данными и бизнес-информацией"
+                  }
+                ],
+                "mitigations": [
+                  {
+                    "name": "Обучение сотрудников",
+                    "description": "Регулярное обучение сотрудников распознаванию фишинговых писем и социальной инженерии",
+                    "effectiveness": "Medium",
+                    "implementation_complexity": "Low",
+                    "stage_id": "initial_access",
+                    "product_id": null
+                  },
+                  {
+                    "name": "ИнтеллектЩит",
+                    "description": "Использование продукта ИнтеллектЩит для обнаружения аномального поведения",
+                    "effectiveness": "High",
+                    "implementation_complexity": "Medium",
+                    "stage_id": null,
+                    "product_id": "intellectshield"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

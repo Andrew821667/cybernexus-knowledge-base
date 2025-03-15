@@ -753,6 +753,504 @@ class KnowledgeBaseAccessor:
                 self.db.rollback()
                 raise e
     
+
+    def get_attack_scenarios(self) -> List[Dict[str, Any]]:
+        """
+        Получение списка всех сценариев атак
+        
+        Returns:
+            Список словарей с информацией о сценариях атак
+        """
+        if self.storage_type == "json":
+            # Поиск раздела сценариев атак
+            for section in self.data.get("sections", []):
+                if section.get("id") == "attack_scenarios":
+                    scenarios = []
+                    # Собираем сценарии из всех подразделов
+                    for subsection in section.get("subsections", []):
+                        for scenario in subsection.get("content", {}).get("scenarios", []):
+                            scenario_copy = scenario.copy()
+                            scenario_copy["subsection_id"] = subsection.get("id")
+                            scenario_copy["subsection_name"] = subsection.get("name")
+                            scenarios.append(scenario_copy)
+                    return scenarios
+            return []
+        else:
+            cursor = self.db.cursor()
+            cursor.execute("""
+                SELECT a.*, s.id as subsection_id, s.name as subsection_name
+                FROM attack_scenarios a
+                JOIN subsections s ON s.id IN (
+                    SELECT subsection_id FROM scenario_subsections WHERE scenario_id = a.id
+                )
+                ORDER BY a.name
+            """)
+            scenarios = [dict(row) for row in cursor.fetchall()]
+            
+            # Дополняем каждый сценарий этапами, техниками и мерами защиты
+            for scenario in scenarios:
+                scenario_id = scenario["id"]
+                
+                # Этапы атаки
+                cursor.execute("""
+                    SELECT ss.*, as.name as stage_name
+                    FROM scenario_attack_stages ss
+                    JOIN attack_stages as ON ss.stage_id = as.id
+                    WHERE ss.scenario_id = ?
+                    ORDER BY ss.order_index
+                """, (scenario_id,))
+                scenario["stages"] = [dict(row) for row in cursor.fetchall()]
+                
+                # Целевые активы
+                cursor.execute("""
+                    SELECT * FROM scenario_target_assets
+                    WHERE scenario_id = ?
+                """, (scenario_id,))
+                scenario["target_assets"] = [dict(row) for row in cursor.fetchall()]
+                
+                # Техники для каждого этапа
+                for stage in scenario.get("stages", []):
+                    stage_id = stage["stage_id"]
+                    cursor.execute("""
+                        SELECT * FROM scenario_techniques
+                        WHERE scenario_id = ? AND stage_id = ?
+                    """, (scenario_id, stage_id))
+                    stage["techniques"] = [dict(row) for row in cursor.fetchall()]
+                
+                # Меры защиты
+                cursor.execute("""
+                    SELECT sm.*, p.name as product_name
+                    FROM scenario_mitigations sm
+                    LEFT JOIN products p ON sm.product_id = p.id
+                    WHERE sm.scenario_id = ?
+                """, (scenario_id,))
+                scenario["mitigations"] = [dict(row) for row in cursor.fetchall()]
+                
+                # Индикаторы компрометации
+                cursor.execute("""
+                    SELECT * FROM scenario_iocs
+                    WHERE scenario_id = ?
+                """, (scenario_id,))
+                scenario["iocs"] = [dict(row) for row in cursor.fetchall()]
+                
+                # Примеры реальных инцидентов
+                cursor.execute("""
+                    SELECT * FROM scenario_real_world_examples
+                    WHERE scenario_id = ?
+                """, (scenario_id,))
+                scenario["real_world_examples"] = [dict(row) for row in cursor.fetchall()]
+            
+            return scenarios
+
+    def get_attack_scenario_by_id(self, scenario_id: Union[str, int]) -> Optional[Dict[str, Any]]:
+        """
+        Получение информации о сценарии атаки по ID
+        
+        Args:
+            scenario_id: Идентификатор сценария атаки
+            
+        Returns:
+            Словарь с информацией о сценарии атаки или None, если сценарий не найден
+        """
+        if self.storage_type == "json":
+            # Поиск раздела сценариев атак
+            for section in self.data.get("sections", []):
+                if section.get("id") == "attack_scenarios":
+                    # Ищем сценарий во всех подразделах
+                    for subsection in section.get("subsections", []):
+                        for scenario in subsection.get("content", {}).get("scenarios", []):
+                            if str(scenario.get("id")) == str(scenario_id):
+                                scenario_copy = scenario.copy()
+                                scenario_copy["subsection_id"] = subsection.get("id")
+                                scenario_copy["subsection_name"] = subsection.get("name")
+                                return scenario_copy
+            return None
+        else:
+            cursor = self.db.cursor()
+            cursor.execute("""
+                SELECT a.*, s.id as subsection_id, s.name as subsection_name
+                FROM attack_scenarios a
+                JOIN subsections s ON s.id IN (
+                    SELECT subsection_id FROM scenario_subsections WHERE scenario_id = a.id
+                )
+                WHERE a.id = ?
+            """, (scenario_id,))
+            scenario = cursor.fetchone()
+            
+            if not scenario:
+                return None
+                
+            scenario = dict(scenario)
+            
+            # Этапы атаки
+            cursor.execute("""
+                SELECT ss.*, as.name as stage_name
+                FROM scenario_attack_stages ss
+                JOIN attack_stages as ON ss.stage_id = as.id
+                WHERE ss.scenario_id = ?
+                ORDER BY ss.order_index
+            """, (scenario_id,))
+            scenario["stages"] = [dict(row) for row in cursor.fetchall()]
+            
+            # Целевые активы
+            cursor.execute("""
+                SELECT * FROM scenario_target_assets
+                WHERE scenario_id = ?
+            """, (scenario_id,))
+            scenario["target_assets"] = [dict(row) for row in cursor.fetchall()]
+            
+            # Техники для каждого этапа
+            for stage in scenario.get("stages", []):
+                stage_id = stage["stage_id"]
+                cursor.execute("""
+                    SELECT * FROM scenario_techniques
+                    WHERE scenario_id = ? AND stage_id = ?
+                """, (scenario_id, stage_id))
+                stage["techniques"] = [dict(row) for row in cursor.fetchall()]
+            
+            # Меры защиты
+            cursor.execute("""
+                SELECT sm.*, p.name as product_name
+                FROM scenario_mitigations sm
+                LEFT JOIN products p ON sm.product_id = p.id
+                WHERE sm.scenario_id = ?
+            """, (scenario_id,))
+            scenario["mitigations"] = [dict(row) for row in cursor.fetchall()]
+            
+            # Индикаторы компрометации
+            cursor.execute("""
+                SELECT * FROM scenario_iocs
+                WHERE scenario_id = ?
+            """, (scenario_id,))
+            scenario["iocs"] = [dict(row) for row in cursor.fetchall()]
+            
+            # Примеры реальных инцидентов
+            cursor.execute("""
+                SELECT * FROM scenario_real_world_examples
+                WHERE scenario_id = ?
+            """, (scenario_id,))
+            scenario["real_world_examples"] = [dict(row) for row in cursor.fetchall()]
+            
+            return scenario
+
+    def delete_attack_scenario(self, scenario_id: Union[str, int]) -> bool:
+        """
+        Удаление сценария атаки по ID
+        
+        Args:
+            scenario_id: Идентификатор сценария атаки
+            
+        Returns:
+            True, если сценарий успешно удален, иначе False
+        """
+        if self.storage_type == "json":
+            # Поиск раздела сценариев атак
+            for section in self.data.get("sections", []):
+                if section.get("id") == "attack_scenarios":
+                    # Ищем сценарий во всех подразделах
+                    for subsection in section.get("subsections", []):
+                        scenarios = subsection.get("content", {}).get("scenarios", [])
+                        for i, scenario in enumerate(scenarios):
+                            if str(scenario.get("id")) == str(scenario_id):
+                                # Удаляем сценарий
+                                del subsection["content"]["scenarios"][i]
+                                self._save_json()
+                                return True
+            return False
+        else:
+            cursor = self.db.cursor()
+            
+            try:
+                # Начинаем транзакцию
+                cursor.execute("BEGIN TRANSACTION")
+                
+                # Удаляем сценарий и все связанные данные
+                # Каскадное удаление сработает для таблиц с FK на scenario_id
+                cursor.execute("DELETE FROM attack_scenarios WHERE id = ?", (scenario_id,))
+                
+                # Проверяем, был ли удален сценарий
+                if cursor.rowcount == 0:
+                    self.db.rollback()
+                    return False
+                
+                # Фиксируем транзакцию
+                self.db.commit()
+                return True
+                
+            except Exception as e:
+                # Откатываем транзакцию в случае ошибки
+                self.db.rollback()
+                raise e
+
+    def get_attack_scenarios_by_tag(self, tag: str) -> List[Dict[str, Any]]:
+        """
+        Получение сценариев атак по тегу
+        
+        Args:
+            tag: Тег для поиска
+            
+        Returns:
+            Список словарей с информацией о сценариях атак
+        """
+        if self.storage_type == "json":
+            scenarios = []
+            for section in self.data.get("sections", []):
+                if section.get("id") == "attack_scenarios":
+                    for subsection in section.get("subsections", []):
+                        for scenario in subsection.get("content", {}).get("scenarios", []):
+                            # Проверяем наличие тега
+                            tags = scenario.get("tags", [])
+                            if isinstance(tags, str):
+                                tags = [t.strip() for t in tags.split(",")]
+                            
+                            if tag.lower() in [t.lower() for t in tags]:
+                                scenario_copy = scenario.copy()
+                                scenario_copy["subsection_id"] = subsection.get("id")
+                                scenario_copy["subsection_name"] = subsection.get("name")
+                                scenarios.append(scenario_copy)
+            return scenarios
+        else:
+            cursor = self.db.cursor()
+            # Ищем сценарии с указанным тегом
+            cursor.execute("""
+                SELECT a.*, s.id as subsection_id, s.name as subsection_name
+                FROM attack_scenarios a
+                JOIN subsections s ON s.id IN (
+                    SELECT subsection_id FROM scenario_subsections WHERE scenario_id = a.id
+                )
+                WHERE a.tags LIKE ?
+                ORDER BY a.name
+            """, (f"%{tag}%",))
+            
+            scenarios = [dict(row) for row in cursor.fetchall()]
+            
+            # Дополняем каждый сценарий информацией как в методе get_attack_scenarios
+            # ...
+            
+            return scenarios
+
+    def get_attack_scenarios_by_product(self, product_id: str) -> List[Dict[str, Any]]:
+        """
+        Получение сценариев атак, для защиты от которых используется указанный продукт
+        
+        Args:
+            product_id: Идентификатор продукта
+            
+        Returns:
+            Список словарей с информацией о сценариях атак
+        """
+        if self.storage_type == "json":
+            scenarios = []
+            for section in self.data.get("sections", []):
+                if section.get("id") == "attack_scenarios":
+                    for subsection in section.get("subsections", []):
+                        for scenario in subsection.get("content", {}).get("scenarios", []):
+                            # Проверяем меры защиты
+                            for mitigation in scenario.get("mitigations", []):
+                                if mitigation.get("product_id") == product_id:
+                                    scenario_copy = scenario.copy()
+                                    scenario_copy["subsection_id"] = subsection.get("id")
+                                    scenario_copy["subsection_name"] = subsection.get("name")
+                                    scenarios.append(scenario_copy)
+                                    break
+            return scenarios
+        else:
+            cursor = self.db.cursor()
+            # Ищем сценарии, которые упоминают продукт
+            cursor.execute("""
+                SELECT DISTINCT a.*, s.id as subsection_id, s.name as subsection_name
+                FROM attack_scenarios a
+                JOIN scenario_mitigations sm ON a.id = sm.scenario_id
+                JOIN subsections s ON s.id IN (
+                    SELECT subsection_id FROM scenario_subsections WHERE scenario_id = a.id
+                )
+                WHERE sm.product_id = ?
+                ORDER BY a.name
+            """, (product_id,))
+            
+            scenarios = [dict(row) for row in cursor.fetchall()]
+            
+            # Дополняем каждый сценарий информацией как в других методах
+            # ...
+            
+            return scenarios
+
+    def get_attack_scenarios_by_mitre_technique(self, mitre_technique_id: str) -> List[Dict[str, Any]]:
+        """
+        Получение сценариев атак, использующих определенную технику MITRE ATT&CK
+        
+        Args:
+            mitre_technique_id: Идентификатор техники MITRE ATT&CK (например, 'T1566.001')
+            
+        Returns:
+            Список словарей с информацией о сценариях атак
+        """
+        if self.storage_type == "json":
+            scenarios = []
+            for section in self.data.get("sections", []):
+                if section.get("id") == "attack_scenarios":
+                    for subsection in section.get("subsections", []):
+                        for scenario in subsection.get("content", {}).get("scenarios", []):
+                            # Проверяем все этапы и техники
+                            for stage in scenario.get("stages", []):
+                                for technique in stage.get("techniques", []):
+                                    if technique.get("mitre_technique_id") == mitre_technique_id:
+                                        if scenario not in scenarios:  # Избегаем дубликатов
+                                            scenario_copy = scenario.copy()
+                                            scenario_copy["subsection_id"] = subsection.get("id")
+                                            scenario_copy["subsection_name"] = subsection.get("name")
+                                            scenarios.append(scenario_copy)
+            return scenarios
+        else:
+            cursor = self.db.cursor()
+            cursor.execute("""
+                SELECT DISTINCT a.*, s.id as subsection_id, s.name as subsection_name
+                FROM attack_scenarios a
+                JOIN scenario_techniques st ON a.id = st.scenario_id
+                JOIN subsections s ON s.id IN (
+                    SELECT subsection_id FROM scenario_subsections WHERE scenario_id = a.id
+                )
+                WHERE st.mitre_technique_id = ?
+                ORDER BY a.name
+            """, (mitre_technique_id,))
+            
+            scenarios = [dict(row) for row in cursor.fetchall()]
+            
+            # Для каждого сценария добавляем дополнительную информацию
+            # ...
+            
+            return scenarios
+
+    def add_attack_scenario(self, scenario_data: Dict[str, Any], subsection_id: str) -> Union[str, int]:
+        """
+        Добавление нового сценария атаки
+        
+        Args:
+            scenario_data: Данные о сценарии атаки
+            subsection_id: ID подраздела, к которому относится сценарий
+            
+        Returns:
+            ID добавленного сценария
+        """
+        scenario_id = scenario_data.get("id")
+        if not scenario_id and self.storage_type == "json":
+            # Генерируем ID для JSON-формата, если он не указан
+            scenario_id = scenario_data.get("name", "").lower().replace(" ", "_")
+            scenario_data["id"] = scenario_id
+        
+        if self.storage_type == "json":
+            # Поиск или создание раздела сценариев атак
+            attack_scenarios_section = None
+            for section in self.data.get("sections", []):
+                if section.get("id") == "attack_scenarios":
+                    attack_scenarios_section = section
+                    break
+            
+            if not attack_scenarios_section:
+                # Создаем новый раздел для сценариев атак
+                attack_scenarios_section = {
+                    "id": "attack_scenarios",
+                    "name": "Сценарии атак",
+                    "description": "Типовые сценарии кибератак с детальным описанием этапов, техник и мер защиты",
+                    "subsections": []
+                }
+                self.data["sections"].append(attack_scenarios_section)
+            
+            # Поиск подраздела
+            target_subsection = None
+            for subsection in attack_scenarios_section.get("subsections", []):
+                if subsection.get("id") == subsection_id:
+                    target_subsection = subsection
+                    break
+            
+            if not target_subsection:
+                # Создаем новый подраздел
+                target_subsection = {
+                    "id": subsection_id,
+                    "name": subsection_id.replace("_", " ").title(),
+                    "description": "Сценарии атак типа " + subsection_id.replace("_", " ").title(),
+                    "content": {"scenarios": []}
+                }
+                attack_scenarios_section["subsections"].append(target_subsection)
+            
+            # Проверяем наличие сценариев в подразделе
+            if "content" not in target_subsection:
+                target_subsection["content"] = {"scenarios": []}
+            elif "scenarios" not in target_subsection["content"]:
+                target_subsection["content"]["scenarios"] = []
+            
+            # Проверяем существование сценария с таким ID
+            for i, scenario in enumerate(target_subsection["content"]["scenarios"]):
+                if scenario.get("id") == scenario_id:
+                    # Обновляем существующий сценарий
+                    target_subsection["content"]["scenarios"][i] = scenario_data
+                    self._save_json()
+                    return scenario_id
+            
+            # Добавляем новый сценарий
+            target_subsection["content"]["scenarios"].append(scenario_data)
+            self._save_json()
+            
+            return scenario_id
+        else:
+            cursor = self.db.cursor()
+            
+            # Проверяем существование подраздела
+            cursor.execute("SELECT id FROM subsections WHERE id = ?", (subsection_id,))
+            if not cursor.fetchone():
+                raise ValueError(f"Подраздел с ID {subsection_id} не найден")
+            
+            # Проверяем существование сценария с таким ID, если он указан
+            if scenario_id:
+                cursor.execute("SELECT id FROM attack_scenarios WHERE id = ?", (scenario_id,))
+                if cursor.fetchone():
+                    raise ValueError(f"Сценарий атаки с ID {scenario_id} уже существует")
+            
+            try:
+                # Начинаем транзакцию
+                cursor.execute("BEGIN TRANSACTION")
+                
+                # Добавляем основную информацию о сценарии
+                cursor.execute("""
+                    INSERT INTO attack_scenarios (
+                        name, description, difficulty_level, impact_level,
+                        typical_duration, detection_complexity, mitigation_complexity,
+                        tags, mitre_attack_ids, threat_actors
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    scenario_data.get("name", ""),
+                    scenario_data.get("description", ""),
+                    scenario_data.get("difficulty_level", "Medium"),
+                    scenario_data.get("impact_level", "Medium"),
+                    scenario_data.get("typical_duration", ""),
+                    scenario_data.get("detection_complexity", "Medium"),
+                    scenario_data.get("mitigation_complexity", "Medium"),
+                    scenario_data.get("tags", ""),
+                    scenario_data.get("mitre_attack_ids", ""),
+                    scenario_data.get("threat_actors", "")
+                ))
+                
+                # Получаем ID добавленного сценария
+                cursor.execute("SELECT last_insert_rowid()")
+                scenario_id = cursor.fetchone()[0]
+                
+                # Связываем сценарий с подразделом
+                cursor.execute("""
+                    INSERT INTO scenario_subsections (scenario_id, subsection_id)
+                    VALUES (?, ?)
+                """, (scenario_id, subsection_id))
+                
+                # Добавляем этапы атаки и другие данные...
+                
+                # Фиксируем транзакцию
+                self.db.commit()
+                
+                return scenario_id
+            
+            except Exception as e:
+                # Откатываем транзакцию в случае ошибки
+                self.db.rollback()
+                raise e
     def export_to_json(self, output_path: str) -> None:
         """
         Экспорт базы знаний в формат JSON
