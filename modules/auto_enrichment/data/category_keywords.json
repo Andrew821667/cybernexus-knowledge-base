@@ -1,0 +1,39 @@
+{
+  "malware": [
+    "malware", "вирус", "троян", "червь", "backdoor", "бэкдор", "spyware", "шпионское ПО",
+    "adware", "рекламное ПО", "rootkit", "руткит", "bootkit", "буткит", "keylogger", "кейлоггер",
+    "stealer", "стилер", "banker", "банкер", "dropper", "дроппер", "payload", "полезная нагрузка",
+    "downloader", "загрузчик", "injector", "инжектор", "polymorphic", "полиморфный", "virus",
+    "worm", "trojan", "malicious software", "вредоносное ПО", "вредоносная программа", "malicious code"
+  ],
+  "phishing": [
+    "фишинг", "phishing", "spoofing", "подделка", "социальная инженерия", "social engineering",
+    "имитация", "impersonation", "поддельный", "fake", "мошенничество", "fraud", "scam", "обман",
+    "подделка сайта", "website forgery", "поддельное письмо", "fake email", "spear phishing",
+    "целевой фишинг", "whaling", "китобойный фишинг", "smishing", "смишинг", "vishing", "вишинг",
+    "pharming", "фарминг", "typosquatting", "тайпосквоттинг", "clone phishing", "клон-фишинг"
+  ],
+  "ransomware": [
+    "ransomware", "шифровальщик", "вымогатель", "выкуп", "ransom", "encryption", "шифрование",
+    "криптолокер", "cryptolocker", "шифрование файлов", "file encryption", "блокировщик", "locker",
+    "вымогательство", "extortion", "принуждение", "coercion", "double extortion", "двойное вымогательство",
+    "шифрование устройства", "device encryption", "cryptojacking", "криптоджекинг", "data hostage",
+    "данные в заложниках", "decryptor", "дешифратор", "blackmail", "шантаж"
+  ],
+  "ddos": [
+    "ddos", "denial of service", "отказ в обслуживании", "dos", "distributed denial of service",
+    "распределенный отказ в обслуживании", "флуд", "flood", "атака амплификации", "amplification attack",
+    "reflection attack", "атака отражения", "ботнет", "botnet", "http flood", "http флуд", "syn flood",
+    "syn флуд", "udp flood", "udp флуд", "icmp flood", "icmp флуд", "воздействие на доступность",
+    "availability impact", "объемная атака", "volumetric attack", "protocol attack", "протокольная атака",
+    "application layer attack", "атака на уровне приложений", "traffic flood", "флуд трафика"
+  ],
+  "vulnerability": [
+    "уязвимость", "vulnerability", "exploit", "эксплойт", "уязвимое место", "слабое место", "weakness",
+    "брешь", "hole", "дыра", "zero-day", "0day", "нулевого дня", "неисправленная уязвимость",
+    "unpatched vulnerability", "security flaw", "недостаток безопасности", "security bug", "баг безопасности",
+    "security vulnerability", "уязвимость безопасности", "disclosure", "раскрытие", "patch", "патч",
+    "security patch", "патч безопасности", "cve", "security gap", "пробел в безопасности", "bypass",
+    "обход", "security hole", "дыра в безопасности", "security risk", "риск безопасности"
+  ]
+}

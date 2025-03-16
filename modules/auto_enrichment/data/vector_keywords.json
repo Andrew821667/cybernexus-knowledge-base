@@ -1,0 +1,20 @@
+{
+  "email": [
+    "email", "почта", "спам", "письмо", "phishing email", "фишинговое письмо", "spam", "спам",
+    "attachment", "вложение", "malicious attachment", "вредоносное вложение", "email link",
+    "ссылка в письме", "email campaign", "почтовая кампания", "malicious email", "вредоносное письмо"
+  ],
+  "web": [
+    "web", "веб", "сайт", "website", "браузер", "browser", "http", "https", "url", "web page",
+    "веб-страница", "web application", "веб-приложение", "webapp", "web server", "веб-сервер",
+    "web service", "веб-сервис", "web client", "веб-клиент", "web api", "веб-апи"
+  ],
+  "network": [
+    "network", "сеть", "сетевой", "протокол", "protocol", "lan", "wan", "локальная сеть",
+    "глобальная сеть", "tcp", "ip", "udp", "icmp", "network traffic", "сетевой трафик"
+  ],
+  "usb": [
+    "usb", "флэш", "накопитель", "removable", "съемный", "flash drive", "флэш-накопитель",
+    "usb drive", "usb-накопитель", "usb stick", "usb-флешка", "usb device", "usb-устройство"
+  ]
+}

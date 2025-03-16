@@ -1,0 +1,59 @@
+{
+  "knowledge_base": {
+    "storage_type": "json",
+    "path": "../../knowledge_base.json"
+  },
+  "sources": {
+    "cve": {
+      "type": "api",
+      "url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+      "params": {
+        "resultsPerPage": 20,
+        "pubStartDate": "2023-01-01T00:00:00.000",
+        "pubEndDate": "2025-12-31T23:59:59.999"
+      },
+      "response_format": "json",
+      "data_path": "vulnerabilities",
+      "title_field": "cve.id",
+      "description_field": "cve.descriptions[0].value",
+      "date_field": "cve.published",
+      "link_field": "cve.references[0].url"
+    },
+    "security_news": {
+      "type": "rss",
+      "url": "https://threatpost.ru/feed/",
+      "filter_keywords": ["vulnerability", "threat", "attack", "malware", "уязвимость", "атака", "угроза"]
+    },
+    "cyber_news": {
+      "type": "rss",
+      "url": "https://www.cybersecurity-insiders.com/feed/",
+      "filter_keywords": ["vulnerability", "threat", "attack", "malware", "breach", "security"]
+    },
+    "exploit_db": {
+      "type": "rss",
+      "url": "https://www.exploit-db.com/rss.xml",
+      "filter_keywords": []
+    }
+  },
+  "storage": {
+    "type": "sqlite",
+    "path": "./auto_enrichment.db"
+  },
+  "processor": {
+    "enable_translation": true,
+    "translation_target_language": "ru",
+    "classifiers": {
+      "use_keywords": true,
+      "keywords_path": "./data/keywords.json"
+    },
+    "extraction": {
+      "extract_ioc": true,
+      "extract_cwe": true,
+      "extract_products": true
+    }
+  },
+  "schedule": {
+    "frequency": "daily",
+    "time": "03:00"
+  }
+}

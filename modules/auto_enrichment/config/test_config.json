@@ -1,0 +1,43 @@
+{
+  "knowledge_base": {
+    "storage_type": "json",
+    "path": "../../knowledge_base.json"
+  },
+  "sources": {
+    "cve_test": {
+      "type": "api",
+      "url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+      "params": {
+        "resultsPerPage": 5,
+        "pubStartDate": "2023-01-01T00:00:00.000",
+        "pubEndDate": "2025-12-31T23:59:59.999"
+      },
+      "response_format": "json",
+      "data_path": "vulnerabilities",
+      "title_field": "cve.id",
+      "description_field": "cve.descriptions[0].value",
+      "date_field": "cve.published",
+      "link_field": "cve.references[0].url"
+    },
+    "exploit_db_test": {
+      "type": "rss",
+      "url": "https://www.exploit-db.com/rss.xml",
+      "filter_keywords": []
+    }
+  },
+  "storage": {
+    "type": "sqlite",
+    "path": "./test_auto_enrichment.db"
+  },
+  "processor": {
+    "enable_translation": false,
+    "classifiers": {
+      "use_keywords": true
+    },
+    "extraction": {
+      "extract_ioc": true,
+      "extract_cwe": true,
+      "extract_products": true
+    }
+  }
+}
